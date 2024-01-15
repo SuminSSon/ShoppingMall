@@ -7,14 +7,15 @@ from database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(String(255), primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String(255), unique=True, nullable=True)
     password = Column(String(255), nullable=True)
 
     orders = relationship("Order", backref="user")
     reviews = relationship("Review", backref="user")
 
 
-class Item(Base):  # 클래스 이름은 Python의 naming convention에 맞게 변경하였습니다.
+class Item(Base):
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -23,7 +24,7 @@ class Item(Base):  # 클래스 이름은 Python의 naming convention에 맞게 �
     description = Column(String(255), nullable=True)
     price = Column(Integer, nullable=True)
 
-    category_id = Column(Integer, ForeignKey("categories.id"))  # 카테고리와의 관계 설정
+    category_id = Column(Integer, ForeignKey("categories.id"))
     category = relationship("Category", backref="items")
 
     orders = relationship("Order", backref="item")
