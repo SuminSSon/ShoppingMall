@@ -76,7 +76,7 @@ def read_item(item_id: int, db: Session = Depends(get_db)):
 def create_item_category(category: schemas.CategorySchema, db: Session = Depends(get_db)):
     return crud.create_item_category(db=db, category=category)
 
-# 리뷰 불러오기
+# 전체 리뷰 불러오기
 @app.get("/reviews/", response_model=List[schemas.ReviewSchema])
 def read_reviews(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     reviews = crud.get_reviews(db, skip=skip, limit=limit)
@@ -86,6 +86,14 @@ def read_reviews(skip: int = 0, limit: int = 100, db: Session = Depends(get_db))
 @app.post("/items/{item_id}/reviews/", response_model=schemas.ReviewSchema)
 def create_review_for_item(item_id: int, review: schemas.ReviewSchema, db: Session = Depends(get_db)):
     return crud.create_review(db=db, review=review)
+
+# 제품별 리뷰 불러오기
+@app.get("/items/{item_id}/reviews/", response_model=List[schemas.ReviewSchema])
+def read_item_reviews(item_id: int, db: Session = Depends(get_db)):
+    reviews = crud.get_item_reviews(db=db, item_id=item_id)
+    if not reviews:
+        raise HTTPException(status_code=404, detail="Reviews not found")
+    return reviews
 
 # 주문하기
 @app.post("/order/", response_model=schemas.OrderSchema)

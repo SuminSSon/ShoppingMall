@@ -33,8 +33,7 @@ def get_item_by_id(db: Session, item_id: int):
 
 # ID로 제품 불러오기 (상세 보기)
 def get_item(db: Session, item_id: int):
-    return db.query(models.Item).filter(models.Item.id == item_id
-).first()
+    return db.query(models.Item).filter(models.Item.id == item_id).first()
 
 # 제품 생성
 def create_item(db: Session, item: schemas.ItemSchema):
@@ -79,6 +78,10 @@ def create_review(db: Session, review: schemas.ReviewSchema):
     db.commit()
     db.refresh(db_review)
     return db_review
+
+# 제품별 리뷰 불러오기
+def get_item_reviews(db: Session, item_id: int):
+    return db.query(models.Review).filter(models.Review.item_id == item_id).all()
 
 # 주문 생성
 def create_order(db: Session, order: schemas.OrderSchema):
