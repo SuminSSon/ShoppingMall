@@ -1,5 +1,8 @@
+import os
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 import models, schemas
+import uuid
 
 # ID로 사용자 찾기
 def get_user_by_email(db: Session, email: str):
@@ -36,12 +39,20 @@ def get_item(db: Session, item_id: int):
     return db.query(models.Item).filter(models.Item.id == item_id).first()
 
 # 제품 생성
-def create_item(db: Session, item: schemas.ItemSchema):
-    db_item = models.Item(name=item.name, image=item.image, description=item.description, price=item.price, category_id=item.category_id)
+def create_item(db: Session, item: schemas.ItemSchema, image_path: str, video_path: str):
+    db_item = models.Item(
+        name=item.name,
+        image=image_path,  # 변경된 부분
+        video=video_path,  # 변경된 부분
+        description=item.description,
+        price=item.price,
+        category_id=item.category_id
+    )
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
     return db_item
+
 
 # 카테고리 별 제품 목록
 def get_items_by_category(db: Session, category_id: int, skip: int = 0, limit: int = 100):
@@ -105,3 +116,31 @@ def update_order_payment(db: Session, order_id: int):
         db.refresh(db_order)
         return db_order
     return None
+
+# 이미지 및 동영상 업로드 처리 함수
+# async def save_upload_file(file: UploadFile, folder: str):
+#     # 파일 경로 생성
+#     file_path = os.path.join(folder, file.filename)
+    
+#     # 파일 쓰기
+#     with open(file_path, "wb") as f:
+#         f.write(file.file.read())
+    
+#     # 저장된 파일의 경로 반환
+#     return file_path
+
+async def save_upload_file(file: UploadFile, folder: str):
+    # Generate a unique filename using UUID
+    unique_filename = str(uuid.uuid4())
+    file_extension = os.path.splitext(file.filename)[-1].lower()
+    file_path = os.path.join(folder, f"{unique_filename}{file_extension}")
+
+    # Write the file content
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+
+    # Return the saved file's path
+    return file_path
+
+def get_media_by_item_id(db: Session, item_id: int):
+    return db.query(models.Item).filter(models.Item.id == item_id).first()

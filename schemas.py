@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import Optional
+from fastapi import File, UploadFile
 from pydantic import BaseModel
 
 
@@ -7,15 +8,24 @@ class UserSchema(BaseModel):
     email: str
     password: str
 
-
 class ItemSchema(BaseModel):
     id: Optional[int] = None
     name: str
-    image: str
     description: str
-    price: int
+    price: float
     category_id: int
+    image: Optional[UploadFile] = File(None)
+    video: Optional[UploadFile] = File(None)
 
+class ItemResponseModel(BaseModel):
+    id: Optional[int] = None
+    name: str
+    description: str
+    price: float
+    category_id: int
+    image: Optional[str]
+    video: Optional[str]
+    
 class OrderSchema(BaseModel):
     id: Optional[int] = None
     user_id: int

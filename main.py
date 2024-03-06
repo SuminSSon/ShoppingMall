@@ -2,6 +2,9 @@ from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
+from fastapi import File, UploadFile
+from fastapi.responses import FileResponse
+from fastapi import Form
 
 import crud, models, schemas
 from database import SessionLocal, engine
@@ -9,6 +12,8 @@ from database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+UPLOAD_DIR = "./photo"
 
 def get_db():
     db = SessionLocal()
@@ -39,32 +44,59 @@ def login(user: schemas.UserSchema, db: Session = Depends(get_db)):
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
-    
+
 # 상품 등록
-@app.post("/items/", response_model=schemas.ItemSchema)
-def create_item(item: schemas.ItemSchema, db: Session = Depends(get_db)):
-    return crud.create_item(db=db, item=item)
+@app.post("/items/")
+async def create_item(
+    name: str = Form(...),
+    description: str = Form(...),
+    price: float = Form(...),
+    category_id: int = Form(...),
+    image: UploadFile = File(...),
+    video: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    # 파일 저장 및 경로 획득
+    image_path = await crud.save_upload_file(image, UPLOAD_DIR)
+    video_path = await crud.save_upload_file(video, UPLOAD_DIR)
+
+    db_item = crud.create_item(
+        db,
+        schemas.ItemSchema(
+            name=name,
+            description=description,
+            price=price,
+            category_id=category_id,
+            image=image,
+            video=video
+        ),
+        image_path,
+        video_path
+    )
+
+
+    return {"item": db_item, "image_path": image_path, "video_path": video_path}
 
 # 모든 상품 목록 조회
-@app.get("/items/", response_model=List[schemas.ItemSchema])
+@app.get("/items/", response_model=List[schemas.ItemResponseModel])
 def read_items(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     items = crud.get_items(db, skip=skip, limit=limit)
     return items
 
 # 카테고리 별 상품 목록 조회
-@app.get("/items/category/{category_id}", response_model=List[schemas.ItemSchema])
+@app.get("/items/category/{category_id}", response_model=List[schemas.ItemResponseModel])
 def get_items_by_category(category_id: int, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     items = crud.get_items_by_category(db, category_id=category_id, skip=skip, limit=limit)
     return items
 
 # 제품 명 검색
-@app.get("/items/search/{item_name}", response_model=List[schemas.ItemSchema])
+@app.get("/items/search/{item_name}", response_model=List[schemas.ItemResponseModel])
 def search_items_by_name(item_name: str, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     items = crud.search_items_by_name(db, name=item_name, skip=skip, limit=limit)
     return items
 
 # 상품 상세 보기
-@app.get("/items/{item_id}", response_model=schemas.ItemSchema)
+@app.get("/items/{item_id}", response_model=schemas.ItemResponseModel)
 def read_item(item_id: int, db: Session = Depends(get_db)):
     item = crud.get_item(db, item_id=item_id)
     if item is None:
@@ -141,3 +173,13 @@ def update_order_payment(order_id: int, db: Session = Depends(get_db)):
         return db_order
     else:
         raise HTTPException(status_code=404, detail="Order not found")
+    
+
+@app.get("/items/{item_id}/image")
+def get_image_by_item_id(item_id: int, db: Session = Depends(get_db)):
+    media = crud.get_media_by_item_id(db, item_id)
+    
+    if media and media.image:
+        return FileResponse(media.image, media_type="image/jpeg")
+    else:
+        raise HTTPException(status_code=404, detail="이미지를 찾을 수 없습니다.")

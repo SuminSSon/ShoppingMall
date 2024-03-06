@@ -20,7 +20,8 @@ class Item(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String(255), nullable=True)
-    image = Column(String(255), nullable=True)
+    image = Column(String(255), nullable=True) # 이미지 파일의 경로 저장
+    video = Column(String(255), nullable=True) # 동영상 파일의 경로 저장
     description = Column(String(255), nullable=True)
     price = Column(Integer, nullable=True)
 
