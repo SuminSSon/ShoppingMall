@@ -15,6 +15,7 @@ class ItemSchema(BaseModel):
     price: float
     category_id: int
     image: Optional[UploadFile] = File(None)
+    splat: Optional[UploadFile] = File(None)
     video: Optional[UploadFile] = File(None)
 
 class ItemResponseModel(BaseModel):
@@ -24,6 +25,7 @@ class ItemResponseModel(BaseModel):
     price: float
     category_id: int
     image: Optional[str]
+    splat: Optional[str]
     video: Optional[str]
     
 class OrderSchema(BaseModel):
