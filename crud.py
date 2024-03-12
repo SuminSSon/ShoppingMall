@@ -117,18 +117,6 @@ def update_order_payment(db: Session, order_id: int):
         return db_order
     return None
 
-# 이미지 및 동영상 업로드 처리 함수
-# async def save_upload_file(file: UploadFile, folder: str):
-#     # 파일 경로 생성
-#     file_path = os.path.join(folder, file.filename)
-    
-#     # 파일 쓰기
-#     with open(file_path, "wb") as f:
-#         f.write(file.file.read())
-    
-#     # 저장된 파일의 경로 반환
-#     return file_path
-
 async def save_upload_file(file: UploadFile, folder: str):
     # Generate a unique filename using UUID
     unique_filename = str(uuid.uuid4())

@@ -175,6 +175,7 @@ def update_order_payment(order_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Order not found")
     
 
+# .jpeg 업로드
 @app.get("/items/{item_id}/image")
 def get_image_by_item_id(item_id: int, db: Session = Depends(get_db)):
     media = crud.get_media_by_item_id(db, item_id)
@@ -183,3 +184,21 @@ def get_image_by_item_id(item_id: int, db: Session = Depends(get_db)):
         return FileResponse(media.image, media_type="image/jpeg")
     else:
         raise HTTPException(status_code=404, detail="이미지를 찾을 수 없습니다.")
+    
+# .mp4 다운로드
+@app.get("/items/{item_id}/video")
+def get_video_by_item_id(item_id: int, db: Session = Depends(get_db)):
+    media = crud.get_media_by_item_id(db, item_id)
+    
+    if media and media.video:
+        return FileResponse(media.video, media_type="video/mp4")
+    else:
+        raise HTTPException(status_code=404, detail="동영상을 찾을 수 없습니다.")
+
+# .splat 업로드
+@app.post("items/{item_id}/uploadfile/")
+async def create_upload_file(file: UploadFile = File(...)):
+    if not file.filename.endswith(".splat"):
+        raise HTTPException(status_code=400, detail="올바른 확장자가 아닙니다. '.splat' 파일만 업로드 가능합니다.")
+    
+    return {"filename": file.filename}
