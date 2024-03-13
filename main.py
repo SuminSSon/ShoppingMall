@@ -196,7 +196,7 @@ def get_video_by_item_id(item_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="동영상을 찾을 수 없습니다.")
 
 # .splat 업로드
-@app.post("items/{item_id}/uploadfile/")
+@app.put("items/{item_id}/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
     if not file.filename.endswith(".splat"):
         raise HTTPException(status_code=400, detail="올바른 확장자가 아닙니다. '.splat' 파일만 업로드 가능합니다.")
