@@ -1,8 +1,11 @@
 import os
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 import models, schemas
 import uuid
+
+import boto3
+from botocore.exceptions import ClientError
 
 # ID로 사용자 찾기
 def get_user_by_email(db: Session, email: str):
@@ -42,8 +45,9 @@ def get_item(db: Session, item_id: int):
 def create_item(db: Session, item: schemas.ItemSchema, image_path: str, video_path: str):
     db_item = models.Item(
         name=item.name,
-        image=image_path,  # 변경된 부분
-        video=video_path,  # 변경된 부분
+        image=image_path,
+        splat=None,  
+        video=video_path,
         description=item.description,
         price=item.price,
         category_id=item.category_id
@@ -118,17 +122,49 @@ def update_order_payment(db: Session, order_id: int):
     return None
 
 async def save_upload_file(file: UploadFile, folder: str):
-    # Generate a unique filename using UUID
     unique_filename = str(uuid.uuid4())
     file_extension = os.path.splitext(file.filename)[-1].lower()
     file_path = os.path.join(folder, f"{unique_filename}{file_extension}")
 
-    # Write the file content
     with open(file_path, "wb") as f:
         f.write(file.file.read())
 
-    # Return the saved file's path
     return file_path
 
-def get_media_by_item_id(db: Session, item_id: int):
-    return db.query(models.Item).filter(models.Item.id == item_id).first()
+s3_client = boto3.client(
+    service_name='s3', region_name='us-east-1',
+    aws_access_key_id='', aws_secret_access_key=""
+)
+bucket_name = ""
+
+def upload_file_to_s3(file: UploadFile) -> str:
+    try:
+        unique_filename = str(uuid.uuid4())
+
+        file_extension = file.filename.split(".")[-1]
+
+        s3_key = f"{unique_filename}.{file_extension}"
+
+        file_body = file.file.read()
+
+        response = s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=file_body)
+
+        s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
+        return s3_url
+
+    except Exception as e:
+        print(f"An error occurred while uploading file to S3: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload file to S3")
+    
+def update_item_splat(db: Session, item_id: int, splat_file: UploadFile):
+    db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    splat_path = upload_file_to_s3(splat_file)
+
+    db_item.splat = splat_path
+    db.commit()
+
+    return db_item

@@ -22,7 +22,8 @@ def get_db():
     finally:
         db.close()
 
-api_router = APIRouter(prefix="/api")
+#api_router = APIRouter(prefix="/api")
+api_router = APIRouter()
 
 # 회원가입
 @api_router.post("/join/", response_model=schemas.UserSchema)
@@ -53,30 +54,40 @@ async def create_item(
     description: str = Form(...),
     price: float = Form(...),
     category_id: int = Form(...),
-    image: UploadFile = File(...),
-    video: UploadFile = File(...),
+    image: UploadFile = File(None),
+    video: UploadFile = File(None),
     db: Session = Depends(get_db),
 ):
-    # 파일 저장 및 경로 획득
-    image_path = await crud.save_upload_file(image, UPLOAD_DIR)
-    video_path = await crud.save_upload_file(video, UPLOAD_DIR)
+    try:
+        # 이미지와 동영상을 S3에 업로드하고 경로 획득
+        image_path = None
+        video_path = None
 
-    db_item = crud.create_item(
-        db,
-        schemas.ItemSchema(
-            name=name,
-            description=description,
-            price=price,
-            category_id=category_id,
-            image=image,
-            video=video
-        ),
-        image_path,
-        video_path
-    )
+        if image:
+            image_path = crud.upload_file_to_s3(image)
+        if video:
+            video_path = crud.upload_file_to_s3(video)
 
+        # 데이터베이스에 아이템 생성 및 이미지 및 동영상 경로 저장
+        db_item = crud.create_item(
+            db,
+            schemas.ItemSchema(
+                name=name,
+                description=description,
+                price=price,
+                category_id=category_id,
+                image_path=image_path,
+                video_path=video_path  # 이 부분이 추가됐습니다.
+            ),
+            image_path,
+            video_path
+        )
 
-    return {"item": db_item, "image_path": image_path, "video_path": video_path}
+        return {"item": db_item}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+   
 
 # 모든 상품 목록 조회
 @api_router.get("/items/", response_model=List[schemas.ItemResponseModel])
@@ -169,7 +180,7 @@ def update_order_payment(order_id: int, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=404, detail="Order not found")
     
-
+'''
 # .jpeg 업로드
 @api_router.get("/items/{item_id}/image")
 def get_image_by_item_id(item_id: int, db: Session = Depends(get_db)):
@@ -197,5 +208,36 @@ async def create_upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="올바른 확장자가 아닙니다. '.splat' 파일만 업로드 가능합니다.")
     
     return {"filename": file.filename}
+'''
+
+@api_router.get("/items/{item_id}/multi/")
+async def get_item_multi_paths(item_id: int, db: Session = Depends(get_db)):
+    # 데이터베이스에서 item_id에 해당하는 상품을 가져옵니다.
+    db_item = crud.get_item(db, item_id=item_id)
+    
+    # 상품이 없을 경우 404 오류를 반환합니다.
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    # 상품의 이미지, 동영상, .splat 파일의 경로를 반환합니다.
+    return {
+        "image_path": db_item.image,
+        "video_path": db_item.video,
+        "splat_path": db_item.splat
+    }
+
+@api_router.put("/items/{item_id}/splat")
+def update_item_splat(
+    item_id: int,
+    splat_file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        # 상품의 .splat 파일을 업데이트합니다.
+        db_item = crud.update_item_splat(db, item_id, splat_file)
+        return {"item": db_item}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 app.include_router(api_router)
