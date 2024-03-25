@@ -22,8 +22,7 @@ def get_db():
     finally:
         db.close()
 
-#api_router = APIRouter(prefix="/api")
-api_router = APIRouter()
+api_router = APIRouter(prefix="/api")
 
 # 회원가입
 @api_router.post("/join/", response_model=schemas.UserSchema)
