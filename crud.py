@@ -139,7 +139,7 @@ s3_client = boto3.client(
     service_name='', region_name='',
     aws_access_key_id='', aws_secret_access_key=""
 )
-bucket_name = "3d-modeling-mall"
+bucket_name = ""
 
 # GPU 서버 API 호출
 def send_video(db: Session, item_id: int):
@@ -177,26 +177,25 @@ def upload_image_to_s3(file: UploadFile) -> str:
         print(f"An error occurred while uploading file to S3: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to upload file to S3")
 
-def upload_video_to_s3(video_file: UploadFile) -> str:
+def upload_file_to_s3(file: UploadFile) -> str:
     try:
         unique_filename = str(uuid.uuid4())
-        s3_key = f"{unique_filename}.zip"
 
-        # 비디오 파일을 메모리에 압축
-        with BytesIO() as zip_buffer:
-            with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED) as z:
-                z.writestr(video_file.filename, video_file.file.read())
+        file_extension = file.filename.split(".")[-1]
 
-            # 압축된 파일을 Amazon S3에 업로드
-            zip_buffer.seek(0)
-            s3_client.upload_fileobj(zip_buffer, bucket_name, s3_key)
+        s3_key = f"{unique_filename}.{file_extension}"
+
+        file_body = file.file.read()
+
+        response = s3_client.put_object(Bucket=bucket_name, Key=s3_key, Body=file_body)
 
         s3_url = f"https://{bucket_name}.s3.amazonaws.com/{s3_key}"
         return s3_url
 
     except Exception as e:
-        print(f"An error occurred while uploading video to S3: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to upload video to S3")
+        print(f"An error occurred while uploading file to S3: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload file to S3")
+    
 
 def upload_splat_to_s3(db: Session, item_id: int, splat_file: UploadFile):
     db_item = db.query(models.Item).filter(models.Item.id == item_id).first()
