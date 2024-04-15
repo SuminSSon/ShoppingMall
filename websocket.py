@@ -1,6 +1,8 @@
+import json
 from fastapi import FastAPI, WebSocket
 import asyncio
 import httpx
+import requests
 
 app = FastAPI()
 
@@ -21,9 +23,9 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
 
             # 클라이언트로부터 'send' 메시지를 수신했을 때마다 백그라운드 작업 시작
+            print("websocket")
             if data == "send":
                 await send_progress_until_done(websocket)
-                break  # 작업이 완료되면 루프 종료
     except Exception as e:
         print(e)
     finally:
@@ -33,21 +35,33 @@ async def websocket_endpoint(websocket: WebSocket):
 # 백그라운드 작업: 클라이언트에게 진행 상황을 보냄
 async def send_progress_until_done(websocket: WebSocket):
     while True:
-        await asyncio.sleep(10)
-        # GPU 서버로부터 진행 상황을 가져와 클라이언트에게 전송
+        print("until_done")
         progress_info = await get_progress_from_gpu_server()
         await websocket.send_text(progress_info)
+#    if progress_info["progress"] == 100:
+#        await websocket.close()
 
-        # 작업이 완료되었으면 루프 종료
-        if progress_info[0] == 100:
-            break
 
-        await asyncio.sleep(10)  # 10초마다 한 번씩 반복
+#async def get_progress_from_gpu_server():
+ #   progress = 0
+  #  elapsed_time = 0
+   # while progress <= 100:
+    #    # 경과 시간 증가, 남은 시간 감소
+     #   elapsed_time += 2
+      #  remain_time = 100 - progress
+       # progress_info = {
+        #    "progress": progress,
+         #   "elapsed_time": elapsed_time,
+          #  "remain_time": remain_time
+#        }
+#        progress += 10
+#        yield json.dumps(progress_info)  # JSON 형식으로 직렬화하여 반환
+#        await asyncio.sleep(2)
 
-# GPU 서버로부터 진행 상황을 가져오는 함수
 async def get_progress_from_gpu_server():
-    async with httpx.AsyncClient() as client:
-        response = await client.get("http://163.180.117.43:9003")
-        progress_info = response.json()  # JSON 형식의 응답을 파싱하여 진행 정보 추출
-        print(progress_info)
-        return progress_info
+    print("gpu_server")
+    response = requests.get("http://163.180.117.43:9003/api/proginfo")
+    progress_info = response.text  # JSON 형식의 응답을 파싱하여 진행 정보 추출
+    print(progress_info)
+    await asyncio.sleep(10)
+    return progress_info

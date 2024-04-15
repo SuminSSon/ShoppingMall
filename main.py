@@ -97,7 +97,7 @@ async def create_item(
             image_path,
             video_path
         )
-        background_tasks.add_task(crud.send_video, db, db_item.id)
+        crud.send_video(db, db_item.id)
 
         return {"item": db_item}
     except Exception as e:
