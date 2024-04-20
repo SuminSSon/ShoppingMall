@@ -65,6 +65,7 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 # 상품 등록
 @api_router.post("/items/")
 async def create_item(
+    background_tasks: BackgroundTasks,
     name: str = Form(...),
     description: str = Form(...),
     price: float = Form(...),
@@ -97,8 +98,8 @@ async def create_item(
             image_path,
             video_path
         )
-        crud.send_video(db, db_item.id)
-
+        #crud.send_video(db, db_item.id)
+        background_tasks.add_task(crud.send_video, db, db_item.id)
         return {"item": db_item}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

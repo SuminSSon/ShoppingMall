@@ -23,7 +23,6 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
 
             # 클라이언트로부터 'send' 메시지를 수신했을 때마다 백그라운드 작업 시작
-            print("websocket")
             if data == "send":
                 await send_progress_until_done(websocket)
     except Exception as e:
@@ -35,7 +34,6 @@ async def websocket_endpoint(websocket: WebSocket):
 # 백그라운드 작업: 클라이언트에게 진행 상황을 보냄
 async def send_progress_until_done(websocket: WebSocket):
     while True:
-        print("until_done")
         progress_info = await get_progress_from_gpu_server()
         await websocket.send_text(progress_info)
 #    if progress_info["progress"] == 100:
@@ -59,7 +57,6 @@ async def send_progress_until_done(websocket: WebSocket):
 #        await asyncio.sleep(2)
 
 async def get_progress_from_gpu_server():
-    print("gpu_server")
     response = requests.get("http://163.180.117.43:9003/api/proginfo")
     progress_info = response.text  # JSON 형식의 응답을 파싱하여 진행 정보 추출
     print(progress_info)

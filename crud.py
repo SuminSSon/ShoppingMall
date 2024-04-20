@@ -139,7 +139,6 @@ s3_client = boto3.client(
     aws_access_key_id='', aws_secret_access_key=""
 )
 bucket_name = ""
-
 # GPU 서버 API 호출
 def send_video(db: Session, item_id: int):
     try:
@@ -193,9 +192,7 @@ def upload_splat_to_s3(db: Session, item_id: int, splat_file: UploadFile):
 
 def receive_splat(db: Session, item_id: int, splat_uuid: str):
     try:
-        response = s3_client.generate_presigned_url('get_object',
-                                                    Params={'Bucket': bucket_name,
-                                                            'Key': f'{splat_uuid}.ply'})
+        response = "https://3d-modeling-mall.s3.ap-northeast-2.amazonaws.com/"+splat_uuid+".ply"
     except Exception as e:
         print(f"Error getting URL from S3: {e}")
         return None
